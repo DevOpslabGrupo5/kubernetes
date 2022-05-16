@@ -12,7 +12,7 @@ spec:
     protocol: TCP
     targetPort: 5000
   selector:
-    app: healthcheck
+    app: deploy
   type: ClusterIP
 status:
   loadBalancer: {}
