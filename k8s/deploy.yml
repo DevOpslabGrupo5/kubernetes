@@ -79,14 +79,14 @@ spec:
             pathType: Prefix
             backend:
               service:
-                 name: hello-app
+                 name: tennis-api
                  port:
                   number: 8080    
           - path: /insights
             pathType: Prefix
             backend:
               service:
-                name: insights-app
+                name: tennis-api
                 port: 
                  number: 8080 
 ---
