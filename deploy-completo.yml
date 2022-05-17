@@ -1,5 +1,7 @@
-kind: Namespace
+# Source Repo: https://github.com/DevOpslabGrupo5/kubernetes/tree/develop
+
 apiVersion: v1
+kind: Namespace
 metadata:
   name: grupo5
 ---
@@ -114,8 +116,8 @@ spec:
   ports:
   - port: 5432
 ---
-kind: ConfigMap
 apiVersion: v1
+kind: ConfigMap
 metadata:
   namespace: grupo5
   name: appconfig
@@ -241,4 +243,3 @@ spec:
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 50
----

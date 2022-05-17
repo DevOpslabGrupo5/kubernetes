@@ -22,30 +22,11 @@ minikube start
 
 ## Comandos
 ### Crear namespace "test-flask"
-k apply -f namespace.yaml
-### Cambiar a namespace
-kubens test-flask
+k apply -f deplot-completo.yaml
 
-### Crear servicio Cluster IP u Node Port en namespace
-k apply -f service-clusterip.yaml
-k apply -f service-nodeport.yaml
-
-### Crear Deployment 
-k apply -f depoy.yaml
-
-### Ingress
-k apply -f ingress.yaml
+k get all
 
 #### Visitar
 http://apiflask:30000/
 
-### Horizontal Pod Autoscalig
-k apply -f hpa.yaml
-
-#### How to Run Locally Built Docker Images in Kubernetes
-(https://medium.com/swlh/how-to-run-locally-built-docker-images-in-kubernetes-b28fbc32cc1d)
-
-#### (Para ocupar imagenes locales)
-    minikube docker-env
-    eval $(minikube -p minikube docker-env)
-    docker build -t docker-demo -f flask_docker/Dockerfile .
+http://apiflask:30000/configmap
