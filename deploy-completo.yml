@@ -1,0 +1,244 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: grupo5
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+  namespace: grupo5
+spec:
+  rules:
+    - host: apiflask
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 5000
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv
+  namespace: grupo5
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 2Gi
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/postgres-pv"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: grupo5
+  labels:
+    type: local
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  volumeName: postgres-pv
+  storageClassName: standard
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: grupo5
+  name: postgres-credentials
+type: Opaque
+data:
+  user: c2FtcGxl
+  password: cGxlYXNlY2hhbmdlbWU=
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: clusterip
+  namespace: grupo5
+  name: service-clusterip
+spec:
+  ports:
+  - name: "flask-port"
+    port: 5000
+    protocol: TCP
+    targetPort: 5000
+  selector:
+    app: deploy
+  type: ClusterIP
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-nodeport
+  namespace: grupo5
+
+spec:
+  type: NodePort
+  ports:
+    - port: 5000
+      nodePort: 30000
+      targetPort: 5000
+      name: http
+  selector:
+    app: deploy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: grupo5
+  labels:
+    service: postgres
+spec:
+  selector:
+    service: postgres
+  type: ClusterIP
+  ports:
+  - port: 5432
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  namespace: grupo5
+  name: appconfig
+data:
+  config.cfg: |
+    MSG="Testeo de un configmap"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy
+  namespace: grupo5
+  labels:
+    app: deploy
+
+spec:
+  replicas: 2 
+  selector:
+    matchLabels:
+      app: deploy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: deploy
+    spec:
+      containers:
+      - name: deploy-pod
+        image: duribef/devops
+        volumeMounts:
+          - name: config-vol
+            mountPath: /config
+        env:
+        - name: FLASK_ENV
+          value: "development"
+        - name: APP_SETTINGS
+          value: "project.config.DevelopmentConfig"
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "128Mi"
+          requests:
+            cpu: "250m"
+            memory: "64Mi"
+        ports:
+        - containerPort: 5000
+        livenessProbe:
+          httpGet:
+            path: /liveness
+            port: 5000
+          initialDelaySeconds: 5
+          timeoutSeconds: 2
+          periodSeconds: 5
+          failureThreshold: 2
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: 5000
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+      volumes:
+        - name: volumen
+          emptyDir: {}
+        - name: config-vol
+          configMap:
+            name: appconfig
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: grupo5
+  labels:
+    name: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: postgres
+  template:
+    metadata:
+      labels:
+        service: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:13-alpine
+        env:
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: postgres-credentials
+                key: user
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-credentials
+                key: password
+        volumeMounts:
+          - name: postgres-volume-mount
+            mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-volume-mount
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      restartPolicy: Always
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  namespace: grupo5
+  name: hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1beta1  
+    kind: Deployment
+    name: deploy
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 50
+---
