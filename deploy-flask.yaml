@@ -24,6 +24,14 @@ spec:
       containers:
       - name: deploy-pod
         image: duribef/devops
+        volumeMounts:
+          - name: config-vol
+            mountPath: /config
+        env:
+        - name: FLASK_ENV
+          value: "development"
+        - name: APP_SETTINGS
+          value: "project.config.DevelopmentConfig"
         imagePullPolicy: Always
         resources:
           limits:
@@ -51,3 +59,6 @@ spec:
       volumes:
         - name: volumen
           emptyDir: {}
+        - name: config-vol
+          configMap:
+            name: appconfig

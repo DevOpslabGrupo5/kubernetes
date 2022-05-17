@@ -36,6 +36,9 @@ k apply -f depoy.yaml
 ### Ingress
 k apply -f ingress.yaml
 
+#### Visitar
+http://apiflask:30000/
+
 ### Horizontal Pod Autoscalig
 k apply -f hpa.yaml
 
